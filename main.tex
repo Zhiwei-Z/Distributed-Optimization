@@ -1,0 +1,316 @@
+\documentclass[12pt]{article}
+ 
+
+ 
+\usepackage[margin=1in]{geometry} 
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{graphicx}
+\usepackage{tabto}
+\usepackage[options ]{algorithm2e}
+% \usepackage{listings}
+
+% \newtheorem{problem}{Problem}
+% \newtheorem{solution}{Solution}
+ 
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+
+\newenvironment{solution}[2][Solution]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+ 
+\newenvironment{problem}[2][Problem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+ 
+\newenvironment{theorem}[2][Theorem]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{claim}[2][Claim]{\begin{trivlist}
+		\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{lemma}[2][Lemma]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{exercise}[2][Exercise]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{reflection}[2][Reflection]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{proposition}[2][Proposition]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{corollary}[2][Corollary]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+\newenvironment{definition}[2][Definition]{\begin{trivlist}
+		\item[\hskip \labelsep {\bfseries #1}\hskip \labelsep {\bfseries #2.}]}{\end{trivlist}}
+
+
+\newenvironment{example}[2][Example]{\begin{trivlist}
+		\item[\hskip \labelsep {\bfseries #1}\hskip \labeq2lsep {\bfseries #2.}]}{\end{trivlist}}
+	
+
+\title{A Brief Introduction to the Optimal Algorithm for Smooth and Strongly Convex Distributed Optimization in Networks}
+
+\author{Cathy Li, Zhiwei Zhang}
+\date{May 2019}
+
+\begin{document}
+
+\maketitle
+\begin{abstract}
+    Distributed Machine Learning algorithms are extensively studied, but lack a coherent theoretical understanding of the efficiency. The paper by Kevin Scaman et. al discusses the optimal convergence rate and proposes an algorithm MSDA for a decentralized setting that converges with the optimal rate. In our assignment, we provide an exposition of the results. 
+\end{abstract}
+\section{Problem Settings}
+\subsection{Optimization Problem}
+Let $\mathcal { G } = ( \mathcal { V } , \mathcal { E } )$ be a connected simple  graph of $n$ computing units ($n = |\mathcal{V}|$) and diameter
+$\Delta ,$ each having access to a local function $f _ { i } ( \theta )$ over $\theta \in \mathbb { R } ^ { d } .$ Our objective is to minimize the average of the local loss functions in a distributed setting: 
+$$
+\min _ { \theta \in \mathbb { R } ^ { d } } \overline { f } ( \theta ) = \frac { 1 } { n } \sum _ { i = 1 } ^ { n } f _ { i } ( \theta )
+$$
+where $f_i$ is $\alpha-$stongly convex and $\beta-$smooth. We denote $\kappa _ { l } = \frac { \beta } { \alpha } \geq 1$ as the local condition number. Similarly, we define $\alpha_g, \beta_g, \kappa_g$ for the average global function $\Bar{f}$.\\
+\newline 
+In addition, we assume that: 
+\begin{enumerate}
+    \item Each computing unit can compute first-order characteristics, such as the gradient of its own function or its Fenchel conjugate. WLOG, assuming the computation takes one unit of time.
+    \item Each computing unit can communicate values (i.e. vectors in $\mathbb { R } ^ { d }$ ) to its neighbors. This communication requires a time $\tau$ (which may be smaller or greater than 1$) .$
+\end{enumerate}
+Both computation and communication are possibly asynchronous and parallel, where we denote node $i$ possess a local version of the parameter $\theta_i$. \\
+
+\subsection{Decentralized Communication}
+A popular approach of communication is the \textit{gossip}. It's represented through matrix multiplication with a gossip matrix $W$ under the following constraints:
+\begin{enumerate}
+    \item $W$ is an $n \times n$ symmetric matrix
+    \item $W$ is positive semi-definite
+    \item Null space of $W$ is spanned by constant: $\operatorname { Ker } ( W ) = \operatorname { Span } ( \mathbb { 1 } ) ,$ where $\mathbb { 1 } = ( 1 , \ldots , 1 ) ^ { \top }$
+    \item $W$ is defined on the edges of the network: $W _ { i j } \neq 0$ only if $i = j$ or $( i , j ) \in \mathcal { E }$
+\end{enumerate}
+Many may have already think of that $W$ resembles many properties of Laplacian matrix. Indeed, Laplacian is a simple choice of the gossip matrix. 
+However, in the presence of large degree nodes, weighted Laplacian matrices are usually a better choice.\\
+\newline
+We will denote by $\lambda _ { 1 } ( W ) \geq \cdots \geq \lambda _ { n } ( W ) = 0$ the spectrum of the gossip matrix $W ,$ and its
+(normalized) eigengap the ratio $\gamma ( W ) = \lambda _ { n - 1 } ( W ) / \lambda _ { 1 } ( W )$ between the second smallest and the largest eigenvalue.
+
+\subsection{Black-box Optimization Procedures}
+To help determining the optimal convergence rate, the paper take in the following black-box abstractions:
+\begin{enumerate}
+    \item \textbf{Local Memory: } each node $i$ can store past values in a (finite) internal memory $\mathcal { M } _ { i , t } \subset \mathbb { R } ^ { d }$ at
+time $t \geq 0 .$ These values can be accessed and used at time $t$ by the algorithm run by node $i ,$
+and are updated either by local computation or by communication (defined below), that is, for
+all $i \in \{ 1 , \ldots , n \}$ $$
+\mathcal { M } _ { i , t } \subset \mathcal { M } _ { i , t } ^ { c o m p } \cup \mathcal { M } _ { i , t } ^ { c o m m }
+$$
+    \item \textbf{Local computation}: each node $i$ can, at time $t ,$ compute the gradient of its local function
+$\nabla f _ { i } ( \theta )$ or its Fenchel conjugate $\nabla f _ { i } ^ { * } ( \theta )$ for a value $\theta \in \mathcal { M } _ { i , t }$ in the node's internal memory,
+that is, for all $i \in \{ 1 , \ldots , n \}$
+$$\mathcal { M } _ { i , t } ^ { c o m p } = \operatorname { Span } \left( \left\{ \theta , \nabla f _ { i } ( \theta ) , \nabla f _ { i } ^ { * } ( \theta ) : \theta \in \mathcal { M } _ { i , t - 1 } \right\} \right)$$
+    \item \textbf{Local communication}: each node $i$ can, at time $t$ , share a value to all or part of its neighbors,
+that is, for all $i \in \{ 1 , \ldots , n \}$ $$
+\mathcal { M } _ { i , t } ^ { c o m m } = \operatorname { Span } \left( \bigcup _ { ( i , j ) \in \mathcal { E } } \mathcal { M } _ { j , t - \tau } \right)
+$$ Notice it's $\mathcal{M}_{j, t - \tau}$ since the message received was $\tau$ units of time ago.
+    \item \textbf{Output value}: each node $i$ must, at time $t ,$ specify one vector in its memory as local output
+of the algorithm, that is, for all $i \in \{ 1 , \ldots , n \}$ $$
+\theta _ { i , t } \in \mathcal { M } _ { i , t }
+$$
+\end{enumerate}
+In short, the black-box procedure formalizes the input and output of each node in the network. The goal of the problem is to  \textbf{ensure all} \mathbf{$\theta_{i}$} \textbf{converges to the same optimal value}.\\
+\newline
+There are some addition assumptions we make:
+\begin{enumerate}
+    \item If local computation is done through gossip algorithm, we assume it's achieved through multiplication of a vector with $W$.
+    \item All nodes start with simple internal memory $\mathcal { M } _ { i , 0 } = \{ 0 \}$
+\end{enumerate}
+
+\section{Lower Bounds}
+\subsection{Centralized Algorithms Lower Bound}
+To analyze the lower bounds of the complexity of centralized algorithms, we first inspect the nature of our problem: 
+\begin{enumerate}
+    \item (Strongly convex and smooth) at least $\Omega\left(\sqrt{\kappa_{g}} \ln (1 / \varepsilon)\right)$ steps are necessary to achieve a fixed precision, where $\kappa_{g}=\beta_{g} / \alpha_{g}$. 
+    \item (Network of diameter $\Delta$) at least $\Delta$ communication steps are required to
+transmit a message between any given pair of nodes
+\end{enumerate}
+\textbf{The lower bound for centralized algorithms: }
+\newline
+\textit{For any graph of diameter $\Delta$ and any black-box procedure, there exists functions $f_i$ such that the time to reach a precision $\epsilon > 0$ is lower bounded by}
+
+$$\Omega\left(\sqrt{\kappa_{g}}(1+\Delta \tau) \ln \left(\frac{1}{\varepsilon}\right)\right)$$
+\textit{where $\kappa_{g}=\beta_{g} / \alpha_{g}$. }
+\newline
+\newline
+We have, for any black-box optimization procedure, at least $\Omega\left(\sqrt{\kappa_{g}} \ln (1 / \varepsilon)\right)$ gradient steps and $\Omega\left(\Delta\sqrt{\kappa_{g}} \ln (1 / \varepsilon)\right)$ communication steps are necessary to achieve a precision $\epsilon > 0$,
+where $\kappa_{g}$ is the global condition number and $\Delta$ is the diameter of the network. 
+\newline
+Notice that this is consistent with the nature of our problem. 
+
+\subsection{Achieving the Lower Bound for Centralized Algorithms}
+The optimal convergence rate in 2.1 is achieved by distributing Nesterov’s accelerated gradient descent on the global function. Computing the gradient of $\overline{f}$ is performed by sending all the local gradients $\nabla f_{i}$ to a single node (denoted as master node) in $\Delta$ communication steps (which may involve several simultaneous messages), and then returning the new parameter $\theta_{t+1}$ to every node in the network (which requires another $\Delta$ communication steps). In practice, summing the gradients can be distributed by computing a spanning tree (with the root as master node), and asking for each node to perform the sum of its children’s gradients before sending it to its parent. 
+\newline
+\newline
+\textbf{Limitations: }
+\begin{enumerate}
+    \item The algorithm is not robust to machine failures, and the
+central role played by the master node also means that a failure of this particular machine may
+completely freeze the procedure. 
+    \item More generally, the algorithm requires precomputing
+a spanning tree, and is thus not suited to time-varying graphs, in which the connectivity between
+the nodes may change through time (e.g. in peer-to-peer networks). 
+    \item The algorithm requires every node to complete its gradient computation before aggregating them on the master node, and the efficiency of the algorithm thus depends on the slowest of all machines.
+\end{enumerate}
+Hence, in the presence of non-uniform latency of the local computations, or the slow down of a specific machine due to a hardware failure, the algorithm will suffer a significant drop in performance. 
+\newline
+\newline
+How would decentralized algorithms perform? Through what way can they become more robust? In which conditions do decentralized algorithms have lower complexity? 
+\subsection{Decentralized Algorithms Lower Bound}
+To cope with the first and second limitations of the centralized algorithms, we are using the gossip algorithm, which is a standard method for averaging values across a network when its connectivity may vary through time. It was shown to be robust against machine failures, non-uniform latencies and asynchronous or time-varying graphs in precious studies. 
+\newline
+\newline
+The convergence analysis of decentralized algorithms usually relies on the spectrum of the  \textit{gossip matrix} $W$ used for communicating values in the network, and more specifically on the ratio between the second smallest and the largest eigenvalue of $W$, denoted $\gamma$. In this section, we show that, with respect to $\gamma$ and $\kappa_l$, reaching a precision $\epsilon$ requires at least $\Omega\left(\sqrt{\kappa_{l}} \ln (1 / \varepsilon)\right)$ gradient steps
+and $\Omega\left(\sqrt{\frac{\kappa_{l}}{\gamma}} \ln (1 / \varepsilon)\right)$ communication steps, by exhibiting a gossip matrix such that a corresponding lower bound exists.
+\newline
+\newline
+To simplify the theorem proofs, we consider the limiting situation $d \rightarrow+\infty$. More specifically we are assuming that rather than $\mathbb{R}^{d}$, we are working in $\ell_{2}=\left\{\theta=\left(\theta_{k}\right)_{k \in \mathbb{N}} : \sum_{k} \theta_{k}^{2}<+\infty\right\}$. 
+\newline
+\newline
+\newline
+\newline
+\textbf{Theorem 1.}\textit{
+Let $\alpha,\ \beta>0$ and $\gamma\in (0, 1]$. There exists a gossip matrix W of eigengap $\gamma(W) = \gamma$, and $\alpha$-strongly convex and $\beta$-smooth functions $f_{i} : \ell_{2} \rightarrow \mathbb{R}$ such that, for any $t \geq 0$ and any black-box procedure using W one has, for all $i \in\{1, \ldots, n\}$,
+$$\overline{f}\left(\theta_{i, t}\right)-\overline{f}\left(\theta^{*}\right) \geq \frac{3 \alpha}{2}\left(1-\frac{16}{\sqrt{\kappa_{l}}}\right)^{1+\frac{t}{1+\frac{\tau}{5 \sqrt{\gamma}}}}\left\|\theta_{i, 0}-\theta^{*}\right\|^{2}$$
+where $\kappa_l = \beta/\alpha$ is the local condition number. }
+\newline
+\newline
+The proof of the theorem relies on splitting the two functions used by Nesterov on a subset of a linear graph to prove oracle complexities for strongly convex and smooth optimization on two nodes. These networks have the appreciable property that the distance $\Delta\approx 1/\sqrt{\gamma}$. 
+\newline
+\newline
+Intuition behind the proof: 
+\newline
+Most dimensions of the parameters $\theta_{i,t}$ will remain zero, and local gradient computations may only increase the number of non-zero dimensions by one. 
+\newline
+At least $\Delta\approx 1/\sqrt{\gamma}$ communication rounds are necessary in-between every gradient computation, in order to share information between the two nodes. 
+\newline
+\newline
+\textbf{Corollary 1. }\textit{For any $\gamma > 0$, there exists a gossip matrix W of eigengap $\gamma$ and $\alpha$-strongly convex, $\beta$-smooth functions such that, with $\kappa_l = \beta/\alpha$, for any black-box procedure using W the time to reach a precision $\epsilon > 0$ is lower bounded by}
+$$\Omega\left(\sqrt{\kappa_{l}}\left(1+\frac{\tau}{\sqrt{\gamma}}\right) \ln \left(\frac{1}{\varepsilon}\right)\right)$$
+\subsection{Complications about the Lower Bound}
+The result given by the corollary provides optimal convergence rates with respect to $\kappa_l$ and $\gamma$, but do not imply that $\gamma$ is the right quantity to consider on general graphs. Consider the following occasions:
+\begin{enumerate}
+    \item Star networks: $\Delta$ = 2 and 1/$\sqrt{\gamma}$ = $\sqrt{n}$. 
+    \item Linear graphs: $\Delta = n - 1$ and 1/$\sqrt{\gamma}\approx 2n/\pi$.
+    \item Totally connected networks: $\Delta$ = 1 and 1/$\sqrt{\gamma}$ = 1. In this case, the lower bound is equivalent to our result for centralized algorithms with $\Delta = 1$. 
+    \item Regular networks: $1 / \sqrt{\gamma} \geq \frac{\Delta}{2 \sqrt{2} \ln _{2} n}$. 
+\end{enumerate}
+Indeed, the quantity 1/$\sqrt{\gamma}$ may be very large compared to $\Delta$ as in the case of star networks. But on many simple networks, the diameter $\Delta$ and the eigengap of the Laplacian matrix are tightly connected, and $\Delta\approx 1/\sqrt{\gamma}$. 
+
+\section{Decentralized Algorithms}
+\subsection{Single-Step Dual Accelerated method}
+The optimization problem can be rewritten in this way:
+$$
+\min _ { \theta \in \mathbb { R } ^ { d } } \overline { f } ( \theta ) = \min _ { \theta _ { 1 } = \cdots = \theta _ { n } } \frac { 1 } { n } \sum _ { i = 1 } ^ { n } f _ { i } \left( \theta _ { i } \right)
+$$
+\newline Since $W$ is PSD, we can write $\sqrt{W} = V ^ { \top } \Sigma ^ { 1 / 2 } V$，where $V ^ { \top } \Sigma  V$ is the single value decomposition of $W$. Therefore kernel of $\sqrt{W}$ is constant, and $\theta _ { 1 } = \cdots = \theta _ { n }$ will just be equivalent to $\Theta \sqrt { W } = 0$.\\
+\newline
+One might wonder why we are using $\sqrt{W}$'s kernel is constant instead of just saying $W$'s kernel is constant. $\sqrt{W}$ will show its importance later when we solve the optimization problem.\\
+\newline This leads to the following \textbf{primal version} of the optimization problem: $$
+\min _ { \Theta \in \mathbb { R } ^ { d \times n } : \Theta \sqrt { W } = 0 } F ( \Theta )
+$$ where 
+$F ( \Theta ) = \sum _ { i = 1 } ^ { n } f _ { i } \left( \theta _ { i } \right)
+$. Since the optimization problem is convex, it is equivalent to its \textbf{dual} optimization problem:
+$$
+\max _ { \lambda \in \mathbb { R } ^ { d \times n } } - F ^ { * } ( \lambda \sqrt { W } )
+$$ where $F ^ { * } ( y ) = \sup _ { x \in \mathbb { R } ^ { d } \times n } \langle y , x \rangle - F ( x )$ is the Fenchel conjugate of $F ,$ and $\langle y , x \rangle = \operatorname { tr } \left( y ^ { \top } x \right)$ is the standard scalar product between matrices.\\
+\newline
+To solve this convex optimization problem, we use Nesterov’s accelerated gradient descent. The
+algorithm is derived by noting that a gradient step of size $\eta > 0$ for the dual problem is: $$
+\lambda _ { t + 1 } = \lambda _ { t } - \eta \nabla F ^ { * } \left( \lambda _ { t } \sqrt { W } \right) \sqrt { W }.
+$$
+Substituting $
+y _ { t } = \lambda _ { t } \sqrt { W }
+$ gives $$
+y _ { t + 1 } = y _ { t } - \eta \nabla F ^ { * } \left( y _ { t } \right) W
+$$ This equation can be interpreted as gossiping the gradients of the local conjugate functions $\nabla f _ { i } ^ { * } \left( y _ { i , t } \right)$
+since $\nabla F ^ { * } \left( y _ { t } \right) _ { i j } = \nabla f _ { j } ^ { * } \left( y _ { j , t } \right) _ { i }$. With these in mind, we can formulate our algorithm: \\
+\newpage
+\textbf{SSDA: Single-Step Dual Accelerated method}
+
+\begin{algorithm}[H]
+	\SetAlgoLined
+	\KwIn{number of iterations $T > 0 ,$ gossip matrix $W \in \mathbb { R } ^ { n \times n } , \eta = \frac { \alpha } { \lambda _ { 1 } ( W ) } , \mu = \frac { \sqrt { \kappa _ { l } } - \sqrt { \gamma } } { \sqrt { \kappa _ { l } } + \sqrt { \gamma } }$}
+	\KwOut{$\theta _ { i , T } ,$ for $i = 1 , \dots , n$}
+	$x _ { 0 } = 0 , y _ { 0 } = 0$\\
+	\For{$t = 0$ to $T - 1$}{
+		$\theta _ { i , t } = \nabla f _ { i } ^ { * } \left( x _ { i , t } \right) ,$ for all $i = 1 , \dots , n$ \\
+		$y _ { t + 1 } = x _ { t } - \eta \Theta _ { t } W$\\
+		$x _ { t + 1 } = ( 1 + \mu ) y _ { t + 1 } - \mu y _ { t }$
+	}
+\end{algorithm}
+Now we discuss the efficiency of this algorithm:
+\newline
+\textbf{Theorem 2}
+\textit{The iterative scheme in SSDA converges to $\Theta = \theta ^ { * } \mathbb { 1 } ^ { \top }$ where $\theta ^ { * }$ is the solution of
+the optimization problem. Furthermore, the time need for this algorithm to reach any given precision $\varepsilon > 0$ is }$$
+O \left( ( 1 + \tau ) \sqrt { \frac { \kappa _ { l } } { \gamma } } \ln \left( \frac { 1 } { \varepsilon } \right) \right)
+$$
+This theorem relies on proving that the condition number of the dual objective function is upper
+bounded by $\frac { \kappa _ { 1 } } { \gamma } ,$ and noting that the convergence rate for accelerated gradient depends on the
+square root of the condition number.
+\subsection{Multi-Step Dual Accelerated method}
+Intuition behind the improvement: 
+The proposed SSDA method always performs the same number of gradient and gossip steps. However, is it efficient for most networks? 
+\newline
+\newline
+It turns out, however, when communication is cheap compared to local computations 
+\newline
+($\tau \ll 1$), it would be preferable to perform more gossip steps than gradient steps in order to propagate the local gradients further than the local neighborhoods of each node. 
+\newline
+\newline
+This can be achieved by replacing $W$ by $P_K(W)$ in SSDA, where $P_K$ is a polynomial of degree at most K. If $P_K(W)$ is itself a gossip matrix, then the analysis of the previous section can be applied and the convergence rate of the resulting algorithm depends on the eigengap of $P_K(W)$. Maximizing this quantity for a fixed K leads to a common acceleration scheme known as Chebyshev acceleration and the choice
+$$P_{K}(x)=1-\frac{T_{K}\left(c_{2}(1-x)\right)}{T_{K}\left(c_{2}\right)},$$ 
+where $c_{2}=\frac{1+\gamma}{1-\gamma}$ and $T_K$ are the Chebyshev polynomials defined as $T_{0}(x)=1,\ T_{1}(x)=x, $ and, for all $k\geq 1$, 
+$$T_{k+1}(x)=2 x T_{k}(x)-T_{k-1}(x).$$
+This particular choice of $P_K(W)$ is indeed a gossip matrix, and taking $K =
+\left\lfloor\frac{1}{\sqrt{\gamma}}\right\rfloor$ leads to our MSDA algorithm with an optimal convergence rate with respect to $\kappa_l$ and $\gamma$. 
+\newline
+The optimal convergence rate in Section 2.3, Corollary 1, is attained under the choice $K=\left\lfloor\frac{1}{\sqrt{\gamma}}\right\rfloor$, which gives $\frac{1}{\sqrt{\gamma\left(P_{K}(W)\right)}} \leq 2$. 
+\newpage
+\textbf{MSDA: Multi-Step Dual Accelerated method}
+
+\begin{algorithm}[H]
+	\SetAlgoLined
+	\KwIn{Number of iterations $T > 0 ,$ gossip matrix $W \in \mathbb { R } ^ { n \times n } , c _ { 1 } = \frac { 1 - \sqrt { \gamma } } { 1 + \sqrt { \gamma } } , c _ { 2 } = \frac { 1 + \gamma } { 1 - \gamma } , c _ { 3 } =
+		\frac { 2 } { ( 1 + \gamma ) \lambda _ { 1 } ( W ) } , K = \left\lfloor \frac { 1 } { \sqrt { \gamma } } \right\rfloor , \eta = \frac { \alpha \left( 1 + c _ { 1 } ^ { 2 K } \right) } { \left( 1 + c _ { 1 } ^ { K } \right) ^ { 2 } } , \mu = \frac { \left( 1 + c _ { 1 } ^ { K } \right) \sqrt { \kappa _ { l } } - 1 + c _ { 1 } ^ { K } } { \left( 1 + c _ { 1 } ^ { K } \right) \sqrt { \kappa _ { l } } + 1 - c _ { 1 } ^ { K } }$}
+	\KwOut{$\theta _ { i , T } ,$ for $i = 1 , \dots , n$}
+	$x _ { 0 } = 0 , y _ { 0 } = 0$\\
+	\For{$t = 0$ to $T - 1$}{
+		$\theta _ { i , t } = \nabla f _ { i } ^ { * } \left( x _ { i , t } \right) ,$ for all $i = 1 , \dots , n$ \\
+		$y _ { t + 1 } = x _ { t } - \eta$ ACCELERATEDGOSSIP $\left( \Theta _ { t } , W , K \right)$\\
+		$x _ { t + 1 } = ( 1 + \mu ) y _ { t + 1 } - \mu y _ { t }$
+	}
+	
+\end{algorithm}
+\medskip
+
+\noindent\textbf{ACCELERATEDGOSSIP($x , W , K$)}
+
+\begin{algorithm}[H]
+	\KwIn{$x , W , K$}
+	\KwOut{$x _ { 0 } - \frac { x _ { K } } { a _ { K } }$}
+	$a _ { 0 } = 1 , a _ { 1 } = c _ { 2 }$\\
+	$x _ { 0 } = x , x _ { 1 } = c _ { 2 } x \left( I - c _ { 3 } W \right)$
+	\For{$k = 1$ to $K - 1 \mathbf { d } \mathbf { o }$}{
+		$a _ { k + 1 } = 2 c _ { 2 } a _ { k } - a _ { k - 1 }$ \\
+		$x _ { k + 1 } = 2 c _ { 2 } x _ { k } \left( I - c _ { 3 } W \right) - x _ { k - 1 }$
+	}
+\end{algorithm}
+
+\noindent\textbf{Theorem 3}
+The iterative scheme in MSDA converges to $\Theta = \theta ^ { * } \mathbb { 1 } ^ { \top }$ where $\theta ^ { * }$ is the solution of
+Eq.(1). Furthermore, the time needed for this algorithm to reach any given precision $\varepsilon > 0$ is
+$$
+O \left( \sqrt { \kappa _ { l } } \left( 1 + \frac { \tau } { \sqrt { \gamma } } \right) \ln \left( \frac { 1 } { \varepsilon } \right) \right)
+$$
+The proof of the theorem relies on standard properties of Chebyshev polynomials that imply that for
+the particular choice of $K = \left\lfloor \frac { 1 } { \sqrt { \gamma } } \right\rfloor ,$ we have $\frac { 1 } { \sqrt { \gamma \left( P _ { K } ( W ) \right) }} \leq 2$. Hence, applying Theorem  2 to the
+gossip matrix $W ^ { \prime } = P _ { K } ( W )$ gives the desired convergence rate. Notice that this result matches Corollary 1.
+\newline
+\newline
+\newline
+\section{Questions}
+\begin{enumerate}
+    \item How can we compute $\nabla f_{i}^{*}\left(x_{i, t}\right)$ efficiently in MSDA?
+    \item MSDA and SSDA depend on the worst strong convexity of the local functions $min_i \alpha_i$, which may be very small. Is there any ways to depend on the average strong convexity instead? 
+\end{enumerate}
+
+\end{document}
